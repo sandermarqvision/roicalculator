@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MarqVision ROI Calculator</title>
+  <style>
+    :root {
+      --navy:  #1a2e4a;
+      --blue:  #0066cc;
+      --blue-light: #e8f0fb;
+      --green: #00875a;
+      --green-light: #e3f5ef;
+      --orange: #c05a00;
+      --orange-light: #fdf0e3;
+      --red-light: #fff5f5;
+      --gray-50:  #f9fafb;
+      --gray-100: #f3f4f6;
+      --gray-200: #e5e7eb;
+      --gray-400: #9ca3af;
+      --gray-600: #4b5563;
+      --gray-800: #1f2937;
+      --r: 12px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f0f4f8; color: var(--gray-800); }
+
+    /* HEADER */
+    .header { background: var(--navy); color: white; padding: 22px 40px; display: flex; align-items: center; justify-content: space-between; }
+    .header-left { display: flex; align-items: center; gap: 14px; }
+    .logo { width: 38px; height: 38px; background: var(--blue); border-radius: 8px; display: flex; align-items: center; justify-content: center; }
+    .logo svg { width: 20px; height: 20px; fill: white; }
+    .header h1 { font-size: 19px; font-weight: 700; }
+    .header p { font-size: 12.5px; color: rgba(255,255,255,0.6); margin-top: 2px; }
+    .badge { background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.22); color: white; font-size: 12px; padding: 5px 13px; border-radius: 20px; }
+
+    /* LAYOUT */
+    .main { max-width: 1180px; margin: 0 auto; padding: 28px 20px; }
+
+    .intro { background: white; border: 1px solid var(--gray-200); border-left: 4px solid var(--blue); border-radius: var(--r); padding: 18px 22px; margin-bottom: 24px; display: flex; gap: 14px; }
+    .intro .icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+    .intro h3 { font-size: 14px; font-weight: 700; color: var(--navy); margin-bottom: 4px; }
+    .intro p { font-size: 13px; color: var(--gray-600); line-height: 1.6; }
+
+    /* FLOW DIAGRAM */
+    .flow { display: flex; align-items: stretch; gap: 0; margin-bottom: 24px; background: white; border: 1px solid var(--gray-200); border-radius: var(--r); overflow: hidden; }
+    .flow-step { flex: 1; padding: 14px 16px; border-right: 1px solid var(--gray-200); }
+    .flow-step:last-child { border-right: none; }
+    .flow-step-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.7px; color: var(--gray-400); margin-bottom: 6px; }
+    .flow-step-title { font-size: 13px; font-weight: 700; color: var(--navy); margin-bottom: 2px; }
+    .flow-step-sub { font-size: 11.5px; color: var(--gray-600); }
+    .flow-arrow { display: flex; align-items: center; padding: 0 4px; color: var(--gray-400); font-size: 18px; flex-shrink: 0; }
+
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 18px; }
+    .grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px; margin-bottom: 18px; }
+
+    .card { background: white; border: 1px solid var(--gray-200); border-radius: var(--r); padding: 22px; }
+    .card-title { font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.6px; color: var(--gray-400); margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
+    .step-num { width: 20px; height: 20px; background: var(--navy); color: white; border-radius: 50%; font-size: 10.5px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+    /* INPUTS */
+    .field { margin-bottom: 16px; }
+    .field:last-child { margin-bottom: 0; }
+    label { display: block; font-size: 12.5px; font-weight: 500; color: var(--gray-600); margin-bottom: 5px; }
+    .hint { font-size: 11px; color: var(--gray-400); font-weight: 400; margin-left: 3px; }
+    .input-wrap { position: relative; }
+    .pfx, .sfx { position: absolute; top: 50%; transform: translateY(-50%); color: var(--gray-400); font-size: 13.5px; pointer-events: none; }
+    .pfx { left: 10px; } .sfx { right: 10px; }
+    input[type="number"], select {
+      width: 100%; padding: 9px 10px; border: 1.5px solid var(--gray-200); border-radius: 7px;
+      font-size: 13.5px; color: var(--gray-800); background: white; -webkit-appearance: none;
+      transition: border-color 0.15s;
+    }
+    input[type="number"].p { padding-left: 24px; }
+    input[type="number"].s { padding-right: 28px; }
+    input[type="number"]:focus, select:focus { outline: none; border-color: var(--blue); box-shadow: 0 0 0 3px rgba(0,102,204,0.08); }
+
+    /* SLIDERS */
+    .sl-wrap { margin-bottom: 16px; }
+    .sl-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 7px; }
+    .sl-label { font-size: 12.5px; font-weight: 500; color: var(--gray-600); }
+    .sl-val { font-size: 18px; font-weight: 800; color: var(--blue); }
+    input[type="range"] { -webkit-appearance: none; width: 100%; height: 5px; border-radius: 3px; background: var(--gray-200); outline: none; cursor: pointer; }
+    input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; border-radius: 50%; background: var(--blue); border: 2.5px solid white; box-shadow: 0 1px 5px rgba(0,102,204,0.3); cursor: pointer; }
+    .sl-ticks { display: flex; justify-content: space-between; margin-top: 3px; }
+    .sl-ticks span { font-size: 10.5px; color: var(--gray-400); }
+
+    /* MATRIX */
+    .matrix-table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 10px; }
+    .matrix-table th { background: var(--gray-50); padding: 8px 10px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.4px; color: var(--gray-400); border: 1px solid var(--gray-200); text-align: center; }
+    .matrix-table td { padding: 8px 10px; border: 1px solid var(--gray-200); text-align: center; font-size: 12px; }
+    .matrix-table .row-header { text-align: left; font-weight: 600; color: var(--gray-600); background: var(--gray-50); }
+    .matrix-cell { border-radius: 5px; padding: 4px 8px; display: inline-block; font-weight: 700; font-size: 12px; }
+    .cell-high { background: #fef9c3; color: #854d0e; }
+    .cell-mid  { background: #fef3c7; color: #92400e; }
+    .cell-low  { background: var(--red-light); color: #dc2626; }
+    .cell-active { outline: 2.5px solid var(--blue); outline-offset: 1px; }
+
+    /* KPIs */
+    .kpi-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 18px; }
+    .kpi { border-radius: 10px; padding: 16px 14px; text-align: center; }
+    .kpi.rev   { background: var(--green-light); border: 1px solid #a7f3d0; }
+    .kpi.roi   { background: var(--blue-light); border: 1px solid #bfdbfe; }
+    .kpi.bcr   { background: #ede9fe; border: 1px solid #c4b5fd; }
+    .kpi.pay   { background: var(--orange-light); border: 1px solid #fed7aa; }
+    .kpi-label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 7px; }
+    .kpi.rev .kpi-label { color: var(--green); }
+    .kpi.roi .kpi-label { color: var(--blue); }
+    .kpi.bcr .kpi-label { color: #7c3aed; }
+    .kpi.pay .kpi-label { color: var(--orange); }
+    .kpi-val { font-size: 26px; font-weight: 800; line-height: 1; margin-bottom: 4px; }
+    .kpi.rev .kpi-val { color: var(--green); }
+    .kpi.roi .kpi-val { color: var(--blue); }
+    .kpi.bcr .kpi-val { color: #7c3aed; }
+    .kpi.pay .kpi-val { color: var(--orange); }
+    .kpi-sub { font-size: 11px; color: var(--gray-400); }
+
+    /* FUNNEL */
+    .funnel { display: flex; flex-direction: column; gap: 8px; margin: 18px 0; }
+    .funnel-row { display: flex; align-items: center; gap: 12px; }
+    .funnel-label { font-size: 12px; color: var(--gray-600); width: 200px; flex-shrink: 0; text-align: right; font-weight: 500; }
+    .funnel-track { flex: 1; height: 26px; background: var(--gray-100); border-radius: 6px; overflow: hidden; }
+    .funnel-bar { height: 100%; border-radius: 6px; display: flex; align-items: center; padding: 0 10px; font-size: 11.5px; font-weight: 600; color: white; transition: width 0.4s ease; min-width: 0; white-space: nowrap; }
+    .bar-total { background: var(--navy); }
+    .bar-l1 { background: #3b82f6; }
+    .bar-l2 { background: var(--blue); }
+    .bar-recover { background: var(--green); }
+
+    /* PITCH */
+    .pitch { background: var(--navy); color: white; border-radius: var(--r); padding: 22px 26px; margin-top: 18px; position: relative; overflow: hidden; }
+    .pitch::before { content: '"'; position: absolute; top: -12px; left: 14px; font-size: 110px; color: rgba(255,255,255,0.06); font-family: Georgia,serif; line-height: 1; }
+    .pitch-text { font-size: 15px; font-style: italic; line-height: 1.65; color: rgba(255,255,255,0.9); margin-bottom: 14px; }
+    .pitch-text strong { color: white; font-style: normal; }
+    .pitch-sub { font-size: 12.5px; background: rgba(255,255,255,0.1); border-radius: 7px; padding: 10px 14px; line-height: 1.5; }
+    .pitch-sub span { color: #93c5fd; font-weight: 600; }
+
+    /* SENSITIVITY */
+    .sens-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+    .sens-table th { background: var(--gray-50); padding: 9px 10px; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--gray-400); font-weight: 600; border-bottom: 1px solid var(--gray-200); }
+    .sens-table td { padding: 8px 10px; border-bottom: 1px solid var(--gray-100); }
+    .sens-table tr:last-child td { border-bottom: none; }
+    .sens-table tr.hl td { background: var(--blue-light); font-weight: 700; }
+    .green { color: var(--green); font-weight: 600; }
+    .red { color: #dc2626; font-weight: 600; }
+
+    /* METHOD PILLS */
+    .methods { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-top: 8px; }
+    .method-btn { padding: 8px 6px; border: 1.5px solid var(--gray-200); border-radius: 7px; cursor: pointer; text-align: center; background: white; transition: all 0.15s; }
+    .method-btn:hover { border-color: var(--blue); }
+    .method-btn.active { border-color: var(--blue); background: var(--blue-light); }
+    .method-btn .method-name { font-size: 11px; font-weight: 700; color: var(--navy); }
+    .method-btn .method-mult { font-size: 13px; font-weight: 800; color: var(--blue); margin: 2px 0; }
+    .method-btn .method-desc { font-size: 10px; color: var(--gray-400); line-height: 1.3; }
+    .method-btn.active .method-desc { color: var(--gray-600); }
+
+    .footnote { text-align: center; font-size: 11px; color: var(--gray-400); margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--gray-200); }
+
+    @media (max-width: 760px) {
+      .grid2, .grid3, .kpi-row { grid-template-columns: 1fr; }
+      .flow { flex-direction: column; }
+      .header { padding: 16px 18px; flex-direction: column; gap: 10px; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <div class="logo">
+      <svg viewBox="0 0 24 24"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+    </div>
+    <div>
+      <h1>MarqVision ROI Calculator</h1>
+      <p>Revenue Recovered Framework · For Finance Teams</p>
+    </div>
+  </div>
+  <div class="badge">Interactive Demo</div>
+</div>
+
+<div class="main">
+
+  <div class="intro">
+    <div class="icon">📐</div>
+    <div>
+      <h3>Built on MarqVision's Official ROI Framework</h3>
+      <p>This calculator follows a two-step methodology: <strong>Step 1</strong> scopes which takedowns actually count (two conservative filters), and <strong>Step 2</strong> applies a per-listing formula — Sales Volume × Variable Substitution Rate × Retail Price — to calculate Revenue Recovered. Every assumption leans conservative, so the result is a number you can defend to finance.</p>
+    </div>
+  </div>
+
+  <!-- FLOW -->
+  <div class="flow">
+    <div class="flow-step">
+      <div class="flow-step-label">All Takedowns</div>
+      <div class="flow-step-title">100% of enforced listings</div>
+      <div class="flow-step-sub">Starting point</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="flow-step-label">Layer 1 · Scope</div>
+      <div class="flow-step-title">MarqVision-Attributed</div>
+      <div class="flow-step-sub">Remove self-removed listings</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="flow-step-label">Layer 2 · Scope</div>
+      <div class="flow-step-title">High-Priority Only</div>
+      <div class="flow-step-sub">Top search pages + client-flagged</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step">
+      <div class="flow-step-label">Formula</div>
+      <div class="flow-step-title">Sales Vol × Sub Rate × Price</div>
+      <div class="flow-step-sub">Summed, annualized</div>
+    </div>
+    <div class="flow-arrow">→</div>
+    <div class="flow-step" style="background:var(--green-light);">
+      <div class="flow-step-label" style="color:var(--green);">Output</div>
+      <div class="flow-step-title" style="color:var(--green);">Revenue Recovered</div>
+      <div class="flow-step-sub">The number finance can act on</div>
+    </div>
+  </div>
+
+  <!-- STEP 1: INPUTS -->
+  <div class="grid2">
+
+    <!-- Enforcement inputs -->
+    <div class="card">
+      <div class="card-title"><div class="step-num">1</div> Enforcement Inputs</div>
+
+      <div class="field">
+        <label>Total Takedowns (annual) <span class="hint">— listings enforced per year</span></label>
+        <input type="number" id="totalTakedowns" value="9165" min="0" step="100" oninput="recalc()" />
+      </div>
+
+      <div class="field">
+        <label>Layer 1 — MarqVision-Attributed <span class="hint">— % MarqVision acted on (not self-removed)</span></label>
+        <div class="sl-wrap" style="margin-bottom:0">
+          <div class="sl-head"><span class="sl-label">Exclude self-removed listings</span><span class="sl-val" id="l1Val">75%</span></div>
+          <input type="range" id="layer1" min="50" max="100" value="75" step="1" oninput="updateSl('layer1','l1Val','%');recalc()" />
+          <div class="sl-ticks"><span>50% (many self-remove)</span><span>100% (all MarqVision)</span></div>
+        </div>
+      </div>
+
+      <div class="field" style="margin-top:16px">
+        <label>Layer 2 — High-Priority Listings <span class="hint">— % on top search pages or client-flagged</span></label>
+        <div class="sl-wrap" style="margin-bottom:0">
+          <div class="sl-head"><span class="sl-label">Exclude buried/low-traffic listings</span><span class="sl-val" id="l2Val">85%</span></div>
+          <input type="range" id="layer2" min="40" max="100" value="85" step="1" oninput="updateSl('layer2','l2Val','%');recalc()" />
+          <div class="sl-ticks"><span>40%</span><span>70%</span><span>100%</span></div>
+        </div>
+      </div>
+
+      <div class="field" style="margin-top:16px">
+        <label>Average Retail Price per Unit <span class="hint">— your authorized selling price</span></label>
+        <div class="input-wrap">
+          <span class="pfx">$</span>
+          <input type="number" class="p" id="retailPrice" value="65" min="1" step="1" oninput="recalc()" />
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Annual MarqVision Subscription <span class="hint">— total cost</span></label>
+        <div class="input-wrap">
+          <span class="pfx">$</span>
+          <input type="number" class="p" id="marqCost" value="200000" min="1" step="10000" oninput="recalc()" />
+        </div>
+      </div>
+    </div>
+
+    <!-- Sales Volume Method -->
+    <div class="card">
+      <div class="card-title"><div class="step-num">2</div> Sales Volume Estimation Method</div>
+      <p style="font-size:12.5px;color:var(--gray-600);margin-bottom:12px;line-height:1.5;">Most platforms hide exact sales numbers. Choose the method that fits your data availability. <strong>Method 3 (Market-based)</strong> is recommended.</p>
+
+      <div class="methods" id="methodBtns">
+        <div class="method-btn" onclick="setMethod(1)" id="m1">
+          <div class="method-name">Method 1</div>
+          <div class="method-mult">1 sale</div>
+          <div class="method-desc">Theoretical floor — every listing = 1 sale</div>
+        </div>
+        <div class="method-btn" onclick="setMethod(2)" id="m2">
+          <div class="method-name">Method 2</div>
+          <div class="method-mult">~1–3×</div>
+          <div class="method-desc">Conservative — actual or 1 if missing</div>
+        </div>
+        <div class="method-btn active" onclick="setMethod(3)" id="m3">
+          <div class="method-name">Method 3 ★</div>
+          <div class="method-mult">~5×</div>
+          <div class="method-desc">Market-based — actual or page-rank median</div>
+        </div>
+        <div class="method-btn" onclick="setMethod(4)" id="m4">
+          <div class="method-name">Method 4</div>
+          <div class="method-mult">~15×</div>
+          <div class="method-desc">Upper bound — actual or 15 if missing</div>
+        </div>
+      </div>
+
+      <div style="margin-top:18px">
+        <label style="display:block;font-size:12.5px;font-weight:500;color:var(--gray-600);margin-bottom:5px;">Avg sales per high-priority listing <span class="hint">— based on method above</span></label>
+        <div class="input-wrap">
+          <input type="number" id="salesPerListing" value="5" min="1" step="1" oninput="recalc()" />
+        </div>
+      </div>
+
+      <div style="margin-top:18px; background:var(--gray-50); border-radius:8px; padding:12px 14px;">
+        <div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.5px;color:var(--gray-400);margin-bottom:8px;">Sensitivity by method (illustrative)</div>
+        <div style="display:flex;gap:6px;align-items:flex-end;height:48px;">
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;">
+            <div style="width:100%;background:#bfdbfe;border-radius:3px;height:12px;"></div>
+            <div style="font-size:10px;color:var(--gray-400);">0.7×</div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;">
+            <div style="width:100%;background:#93c5fd;border-radius:3px;height:24px;"></div>
+            <div style="font-size:10px;color:var(--gray-400);">1.7×</div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;">
+            <div style="width:100%;background:var(--blue);border-radius:3px;height:40px;display:flex;align-items:center;justify-content:center;">
+              <span style="font-size:9px;color:white;font-weight:700;">★</span>
+            </div>
+            <div style="font-size:10px;color:var(--blue);font-weight:700;">4.2×</div>
+          </div>
+          <div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;">
+            <div style="width:100%;background:#6366f1;border-radius:3px;height:48px;"></div>
+            <div style="font-size:10px;color:var(--gray-400);">10.7×</div>
+          </div>
+        </div>
+        <div style="font-size:10px;color:var(--gray-400);margin-top:4px;">BCR multiple by method — actual results vary by brand</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- SUBSTITUTION RATE MATRIX -->
+  <div class="card" style="margin-bottom:18px;">
+    <div class="card-title"><div class="step-num">3</div> Variable Substitution Rate — Marketplace Risk × Price Delta</div>
+    <p style="font-size:12.5px;color:var(--gray-600);margin-bottom:16px;line-height:1.5;">Every listing gets its own substitution rate — not an industry average. Set your marketplace mix and typical price positioning below. The weighted average substitution rate updates automatically.</p>
+
+    <div class="grid3">
+      <!-- Marketplace mix -->
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:12px;">1 · Marketplace Risk Mix</div>
+        <div class="sl-wrap">
+          <div class="sl-head"><span class="sl-label" style="font-size:12px;">Low-risk platforms <span style="color:var(--gray-400);font-size:10.5px;">(eBay, Amazon — base 15%)</span></span><span class="sl-val" id="mkLowV">13%</span></div>
+          <input type="range" id="mkLow" min="0" max="100" value="13" step="1" oninput="updateSl('mkLow','mkLowV','%');syncMk('low');recalc()" />
+        </div>
+        <div class="sl-wrap">
+          <div class="sl-head"><span class="sl-label" style="font-size:12px;">Mid-risk platforms <span style="color:var(--gray-400);font-size:10.5px;">(Shopee, Vinted — base 10%)</span></span><span class="sl-val" id="mkMidV">13%</span></div>
+          <input type="range" id="mkMid" min="0" max="100" value="13" step="1" oninput="updateSl('mkMid','mkMidV','%');syncMk('mid');recalc()" />
+        </div>
+        <div class="sl-wrap">
+          <div class="sl-head"><span class="sl-label" style="font-size:12px;">High-risk platforms <span style="color:var(--gray-400);font-size:10.5px;">(Taobao, AliExpress — base 5%)</span></span><span class="sl-val" id="mkHighV">74%</span></div>
+          <input type="range" id="mkHigh" min="0" max="100" value="74" step="1" oninput="updateSl('mkHigh','mkHighV','%');syncMk('high');recalc()" />
+        </div>
+        <div style="font-size:11px;color:var(--gray-400);margin-top:4px;">Total: <span id="mkTotal" style="font-weight:700;color:var(--gray-800)">100%</span></div>
+      </div>
+
+      <!-- Price delta mix -->
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:12px;">2 · Listing Price vs. Your Retail</div>
+        <div class="sl-wrap">
+          <div class="sl-head"><span class="sl-label" style="font-size:12px;">Near retail <span style="color:var(--gray-400);font-size:10.5px;">(≥70% of retail — ×1.0)</span></span><span class="sl-val" id="pdNearV">12%</span></div>
+          <input type="range" id="pdNear" min="0" max="100" value="12" step="1" oninput="updateSl('pdNear','pdNearV','%');syncPd('near');recalc()" />
+        </div>
+        <div class="sl-wrap">
+          <div class="sl-head"><span class="sl-label" style="font-size:12px;">Below retail <span style="color:var(--gray-400);font-size:10.5px;">(40–70% — ×0.5)</span></span><span class="sl-val" id="pdBelowV">8%</span></div>
+          <input type="range" id="pdBelow" min="0" max="100" value="8" step="1" oninput="updateSl('pdBelow','pdBelowV','%');syncPd('below');recalc()" />
+        </div>
+        <div class="sl-wrap">
+          <div class="sl-head"><span class="sl-label" style="font-size:12px;">Far below retail <span style="color:var(--gray-400);font-size:10.5px;">(<40% — ×0.1)</span></span><span class="sl-val" id="pdFarV">80%</span></div>
+          <input type="range" id="pdFar" min="0" max="100" value="80" step="1" oninput="updateSl('pdFar','pdFarV','%');syncPd('far');recalc()" />
+        </div>
+        <div style="font-size:11px;color:var(--gray-400);margin-top:4px;">Total: <span id="pdTotal" style="font-weight:700;color:var(--gray-800)">100%</span></div>
+      </div>
+
+      <!-- Rate matrix -->
+      <div>
+        <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:12px;">3 · Resulting Rate Matrix</div>
+        <table class="matrix-table">
+          <thead>
+            <tr>
+              <th></th>
+              <th>Near ×1.0</th>
+              <th>Below ×0.5</th>
+              <th>Far ×0.1</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="row-header">Low (15%)</td>
+              <td><span class="matrix-cell cell-high">15%</span></td>
+              <td><span class="matrix-cell cell-mid">7.5%</span></td>
+              <td><span class="matrix-cell cell-low">1.5%</span></td>
+            </tr>
+            <tr>
+              <td class="row-header">Mid (10%)</td>
+              <td><span class="matrix-cell cell-high">10%</span></td>
+              <td><span class="matrix-cell cell-mid">5%</span></td>
+              <td><span class="matrix-cell cell-low">1%</span></td>
+            </tr>
+            <tr>
+              <td class="row-header">High (5%)</td>
+              <td><span class="matrix-cell cell-mid">5%</span></td>
+              <td><span class="matrix-cell cell-low">2.5%</span></td>
+              <td><span class="matrix-cell cell-low">0.5%</span></td>
+            </tr>
+          </tbody>
+        </table>
+        <div style="margin-top:12px;background:var(--blue-light);border-radius:7px;padding:10px 12px;text-align:center;">
+          <div style="font-size:11px;color:var(--gray-600);margin-bottom:2px;">Weighted avg substitution rate</div>
+          <div style="font-size:22px;font-weight:800;color:var(--blue)" id="weightedSub">—</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RESULTS -->
+  <div class="card" style="margin-bottom:18px;">
+    <div class="card-title"><div class="step-num">4</div> Results — Revenue Recovered</div>
+
+    <div class="kpi-row">
+      <div class="kpi rev">
+        <div class="kpi-label">✅ Revenue Recovered</div>
+        <div class="kpi-val" id="revRecovered">$—</div>
+        <div class="kpi-sub">Annualized</div>
+      </div>
+      <div class="kpi roi">
+        <div class="kpi-label">📈 Net ROI</div>
+        <div class="kpi-val" id="netRoi">—%</div>
+        <div class="kpi-sub">Return on investment</div>
+      </div>
+      <div class="kpi bcr">
+        <div class="kpi-label">💎 Benefit-Cost Ratio</div>
+        <div class="kpi-val" id="bcr">—×</div>
+        <div class="kpi-sub">$1 invested returns $X</div>
+      </div>
+      <div class="kpi pay">
+        <div class="kpi-label">⏱ Payback Period</div>
+        <div class="kpi-val" id="payback">— mo</div>
+        <div class="kpi-sub">Months to break even</div>
+      </div>
+    </div>
+
+    <!-- Funnel -->
+    <div style="font-size:12px;font-weight:600;color:var(--gray-600);margin-bottom:10px;">Scoping Funnel — Listings</div>
+    <div class="funnel">
+      <div class="funnel-row">
+        <div class="funnel-label">All Takedowns</div>
+        <div class="funnel-track"><div class="funnel-bar bar-total" id="fTotal" style="width:100%"></div></div>
+      </div>
+      <div class="funnel-row">
+        <div class="funnel-label">After Layer 1 (MarqVision-Attributed)</div>
+        <div class="funnel-track"><div class="funnel-bar bar-l1" id="fL1" style="width:75%"></div></div>
+      </div>
+      <div class="funnel-row">
+        <div class="funnel-label">After Layer 2 (High-Priority)</div>
+        <div class="funnel-track"><div class="funnel-bar bar-l2" id="fL2" style="width:64%"></div></div>
+      </div>
+      <div class="funnel-row">
+        <div class="funnel-label">Revenue-Generating Listings</div>
+        <div class="funnel-track"><div class="funnel-bar bar-recover" id="fRecover" style="width:64%"></div></div>
+      </div>
+    </div>
+
+    <!-- Pitch quote -->
+    <div class="pitch">
+      <div class="pitch-text">
+        Ignore brand protection for a minute. We enforced <strong id="pqListings">—</strong> listings this year. After conservative scoping, <strong id="pqCleared">—</strong> of those generated real demand. The formula returns <strong id="pqRev">$—</strong> in recovered revenue against a <strong id="pqCost">$—</strong> subscription. Would you make that trade?
+      </div>
+      <div class="pitch-sub">
+        Every dollar invested in MarqVision returns <span id="pqBcr">$—</span>. Every assumption in this model leans conservative — actual recovery is likely higher.
+      </div>
+    </div>
+  </div>
+
+  <!-- SENSITIVITY + DETAIL -->
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Sensitivity — Sales Volume Method</div>
+      <table class="sens-table">
+        <thead>
+          <tr><th>Method</th><th>Avg Sales/Listing</th><th>Revenue Recovered</th><th>BCR</th></tr>
+        </thead>
+        <tbody id="sensBody"></tbody>
+      </table>
+    </div>
+    <div class="card">
+      <div class="card-title">Model Breakdown</div>
+      <table class="sens-table"><tbody id="detailBody"></tbody></table>
+    </div>
+  </div>
+
+  <div class="footnote">
+    MarqVision ROI Calculator · Based on the official MarqVision Revenue Recovered Framework.<br/>
+    Conservative by design — actual results depend on enforcement execution, market conditions, and brand-specific data.
+  </div>
+
+</div>
+
+<script>
+  let activeMethod = 3;
+  const methodSales = { 1: 1, 2: 2, 3: 5, 4: 15 };
+
+  function fmt(n) {
+    if (n >= 1e9) return '$' + (n/1e9).toFixed(2) + 'B';
+    if (n >= 1e6) return '$' + (n/1e6).toFixed(2) + 'M';
+    if (n >= 1e3) return '$' + (n/1e3).toFixed(0) + 'K';
+    return '$' + n.toFixed(0);
+  }
+  function comma(n) { return Math.round(n).toLocaleString('en-US'); }
+  function pct(n) { return (n*100).toFixed(1) + '%'; }
+
+  function updateSl(id, valId, suffix) {
+    document.getElementById(valId).textContent = document.getElementById(id).value + suffix;
+  }
+
+  function syncMk(changed) {
+    let low  = parseInt(document.getElementById('mkLow').value);
+    let mid  = parseInt(document.getElementById('mkMid').value);
+    let high = parseInt(document.getElementById('mkHigh').value);
+    let total = low + mid + high;
+    if (total !== 100) {
+      let diff = 100 - total;
+      if (changed === 'low')  { high = Math.max(0, Math.min(100 - low - mid, high + diff)); mid = Math.max(0, 100 - low - high); }
+      else if (changed === 'mid') { high = Math.max(0, Math.min(100 - low - mid, high + diff)); low = Math.max(0, 100 - mid - high); }
+      else { low = Math.max(0, Math.min(100 - mid - high, low + diff)); mid = Math.max(0, 100 - low - high); }
+      document.getElementById('mkLow').value  = low;
+      document.getElementById('mkMid').value  = mid;
+      document.getElementById('mkHigh').value = high;
+      document.getElementById('mkLowV').textContent  = low  + '%';
+      document.getElementById('mkMidV').textContent  = mid  + '%';
+      document.getElementById('mkHighV').textContent = high + '%';
+    }
+    document.getElementById('mkTotal').textContent = (low + mid + high) + '%';
+  }
+
+  function syncPd(changed) {
+    let near  = parseInt(document.getElementById('pdNear').value);
+    let below = parseInt(document.getElementById('pdBelow').value);
+    let far   = parseInt(document.getElementById('pdFar').value);
+    let total = near + below + far;
+    if (total !== 100) {
+      let diff = 100 - total;
+      if (changed === 'near')  { far = Math.max(0, Math.min(100 - near - below, far + diff)); below = Math.max(0, 100 - near - far); }
+      else if (changed === 'below') { far = Math.max(0, Math.min(100 - near - below, far + diff)); near = Math.max(0, 100 - below - far); }
+      else { near = Math.max(0, Math.min(100 - below - far, near + diff)); below = Math.max(0, 100 - near - far); }
+      document.getElementById('pdNear').value  = near;
+      document.getElementById('pdBelow').value = below;
+      document.getElementById('pdFar').value   = far;
+      document.getElementById('pdNearV').textContent  = near  + '%';
+      document.getElementById('pdBelowV').textContent = below + '%';
+      document.getElementById('pdFarV').textContent   = far   + '%';
+    }
+    document.getElementById('pdTotal').textContent = (near + below + far) + '%';
+  }
+
+  function setMethod(m) {
+    activeMethod = m;
+    [1,2,3,4].forEach(i => document.getElementById('m'+i).classList.toggle('active', i===m));
+    document.getElementById('salesPerListing').value = methodSales[m];
+    recalc();
+  }
+
+  function weightedSubRate() {
+    const low  = parseInt(document.getElementById('mkLow').value)  / 100;
+    const mid  = parseInt(document.getElementById('mkMid').value)  / 100;
+    const high = parseInt(document.getElementById('mkHigh').value) / 100;
+    const near  = parseInt(document.getElementById('pdNear').value)  / 100;
+    const below = parseInt(document.getElementById('pdBelow').value) / 100;
+    const far   = parseInt(document.getElementById('pdFar').value)   / 100;
+    // base rates: low=0.15, mid=0.10, high=0.05
+    // multipliers: near=1.0, below=0.5, far=0.1
+    const rate =
+      low  * (0.15*near + 0.15*0.5*below + 0.15*0.1*far) +
+      mid  * (0.10*near + 0.10*0.5*below + 0.10*0.1*far) +
+      high * (0.05*near + 0.05*0.5*below + 0.05*0.1*far);
+    return rate;
+  }
+
+  function recalc() {
+    const totalTD   = parseInt(document.getElementById('totalTakedowns').value) || 0;
+    const l1pct     = parseInt(document.getElementById('layer1').value) / 100;
+    const l2pct     = parseInt(document.getElementById('layer2').value) / 100;
+    const retail    = parseFloat(document.getElementById('retailPrice').value) || 0;
+    const cost      = parseFloat(document.getElementById('marqCost').value) || 1;
+    const salesPL   = parseFloat(document.getElementById('salesPerListing').value) || 1;
+
+    const afterL1   = totalTD * l1pct;
+    const afterL2   = afterL1 * l2pct;
+    const cleared   = afterL2;
+
+    const subRate   = weightedSubRate();
+    const revRecovered = cleared * salesPL * subRate * retail;
+    const netRoi    = (revRecovered - cost) / cost * 100;
+    const bcr       = revRecovered / cost;
+    const paybackMo = cost / (revRecovered / 12);
+
+    // KPIs
+    document.getElementById('revRecovered').textContent = fmt(revRecovered);
+    document.getElementById('netRoi').textContent = (netRoi >= 0 ? '+' : '') + netRoi.toFixed(0) + '%';
+    document.getElementById('bcr').textContent = bcr.toFixed(1) + '×';
+    document.getElementById('payback').textContent = paybackMo < 1 ? '<1 mo' : paybackMo.toFixed(1) + ' mo';
+
+    // Weighted sub rate
+    document.getElementById('weightedSub').textContent = (subRate * 100).toFixed(2) + '%';
+
+    // Funnel bars
+    const fTotalN = comma(totalTD);
+    const fL1N    = comma(Math.round(afterL1));
+    const fL2N    = comma(Math.round(afterL2));
+    const fRevN   = comma(Math.round(cleared));
+    document.getElementById('fTotal').style.width   = '100%';
+    document.getElementById('fTotal').textContent   = fTotalN + ' listings';
+    document.getElementById('fL1').style.width      = (l1pct * 100).toFixed(0) + '%';
+    document.getElementById('fL1').textContent      = fL1N + ' listings';
+    document.getElementById('fL2').style.width      = (l1pct * l2pct * 100).toFixed(0) + '%';
+    document.getElementById('fL2').textContent      = fL2N + ' listings';
+    document.getElementById('fRecover').style.width = (l1pct * l2pct * 100).toFixed(0) + '%';
+    document.getElementById('fRecover').textContent = fRevN + ' listings → revenue';
+
+    // Pitch
+    document.getElementById('pqListings').textContent = comma(totalTD);
+    document.getElementById('pqCleared').textContent  = comma(Math.round(cleared));
+    document.getElementById('pqRev').textContent      = fmt(revRecovered);
+    document.getElementById('pqCost').textContent     = fmt(cost);
+    document.getElementById('pqBcr').textContent      = '$' + bcr.toFixed(1);
+
+    // Sensitivity table
+    const methods = [
+      {m:1, name:'Method 1 · Floor',    sales:1},
+      {m:2, name:'Method 2 · Conservative', sales:2},
+      {m:3, name:'Method 3 · Market ★', sales:5},
+      {m:4, name:'Method 4 · Upper',    sales:15},
+    ];
+    let sHtml = '';
+    methods.forEach(({m, name, sales}) => {
+      const rv  = cleared * sales * subRate * retail;
+      const b   = rv / cost;
+      const hl  = m === activeMethod ? ' class="hl"' : '';
+      sHtml += `<tr${hl}><td>${name}${m===activeMethod?' ◀':''}</td><td>${sales}</td><td>${fmt(rv)}</td><td class="${b>=1?'green':'red'}">${b.toFixed(1)}×</td></tr>`;
+    });
+    document.getElementById('sensBody').innerHTML = sHtml;
+
+    // Detail breakdown
+    const droppedL1 = totalTD - afterL1;
+    const droppedL2 = afterL1 - afterL2;
+    const zeroZone  = droppedL1 + droppedL2;
+    const details = [
+      ['Total Takedowns (annual)',            comma(totalTD)],
+      ['Layer 1 — MarqVision-Attributed',     (l1pct*100).toFixed(0) + '%  →  ' + comma(Math.round(afterL1)) + ' listings'],
+      ['Layer 1 — Dropped (self-removed)',    comma(Math.round(droppedL1)) + ' listings → $0'],
+      ['Layer 2 — High-Priority',             (l2pct*100).toFixed(0) + '%  →  ' + comma(Math.round(afterL2)) + ' listings'],
+      ['Layer 2 — Dropped (buried)',          comma(Math.round(droppedL2)) + ' listings → $0'],
+      ['Zero Zone (total)',                   comma(Math.round(zeroZone)) + ' listings → $0'],
+      ['Cleared Listings (flow to formula)',  comma(Math.round(cleared))],
+      ['Sales Volume per Listing',            salesPL + ' units (Method ' + activeMethod + ')'],
+      ['Weighted Substitution Rate',          (subRate*100).toFixed(2) + '%'],
+      ['Retail Price',                        '$' + retail],
+      ['Revenue Recovered',                   fmt(revRecovered)],
+      ['MarqVision Investment',               fmt(cost)],
+      ['Net Benefit',                         fmt(revRecovered - cost)],
+      ['Benefit-Cost Ratio',                  bcr.toFixed(1) + '×'],
+      ['Payback Period',                      paybackMo.toFixed(1) + ' months'],
+    ];
+    let dHtml = '';
+    details.forEach(([k, v], i) => {
+      const bold = i >= 10 ? 'font-weight:700;' : '';
+      const bg   = i >= 10 ? 'background:var(--blue-light);' : (i%2===0 ? 'background:var(--gray-50);' : '');
+      dHtml += `<tr><td style="${bg}${bold}font-size:12px;padding:7px 10px;border-bottom:1px solid var(--gray-100)">${k}</td><td style="${bg}${bold}font-size:12px;padding:7px 10px;border-bottom:1px solid var(--gray-100);text-align:right">${v}</td></tr>`;
+    });
+    document.getElementById('detailBody').innerHTML = dHtml;
+  }
+
+  recalc();
+</script>
+</body>
+</html>
